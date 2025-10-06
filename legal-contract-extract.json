@@ -1,0 +1,662 @@
+{
+  "name": "Legal Contract extract",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "let citations = $json.citations;\n\n// If citations is a string, try parsing it\nif (typeof citations === 'string') {\n  try {\n    citations = JSON.parse(citations);\n  } catch (e) {\n    citations = [];\n  }\n}\n\n// If it's not an array, default to empty\nif (!Array.isArray(citations)) {\n  citations = [];\n}\n\nconst citationList = citations.map(c => `- \"${c.title}\" — ${c.author} [${c.domain}]`).join('\\n');\n\nconst timestamp = new Date().toISOString();\n\nconst jurisdictionSummaryText = `\nJurisdiction Summary:\n- South Africa: 3\n- US Federal: 2\n- Unknown: 1\n`;\n\nconst report = `\nGenerated On: ${timestamp}\n\nReport Review:\nReview Frequency: ${$json.reviewFrequency || 'N/A'}\nReview Status: ${$json.reviewStatus || 'N/A'}\n\nTop Risks:\n${$json.topRisks || 'N/A'}\n\nCitations:\n${citationList}\n\n${jurisdictionSummaryText}\n`;\n\nreturn { json: { report } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -800
+      ],
+      "id": "a7c8fe9a-b385-4b05-ac65-314872ec414a",
+      "name": "Generate Risk Report"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "extract",
+        "inputType": "file",
+        "binaryPropertyName": "sampleCitation.pdf",
+        "prompt": "Return a list of citations with DOIs and classify them by legal domain (e.g., constitutional, criminal, civil)."
+      },
+      "type": "n8n-nodes-pdfvector.pdfVector",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -976
+      ],
+      "id": "ea604fbb-baf0-4b7f-93d2-761490780362",
+      "name": "Extract structured data from a document",
+      "credentials": {
+        "pdfVectorApi": {
+          "id": "QkuV8AYbkDY38TVj",
+          "name": "PDF Vector account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "191e588f-24f6-42ce-be8c-295421b03db8",
+              "name": "citations",
+              "value": "=[\n  {\n    \"author\": \"J. MacQueen\",\n    \"title\": \"Some methods for classification...\",\n    \"domain\": \"civil\"\n  },\n  {\n    \"author\": \"D. R. Wunch\",\n    \"title\": \"Survey of clustering algorithms\",\n    \"domain\": \"constitutional\"\n  }\n]",
+              "type": "string"
+            },
+            {
+              "id": "5db10183-b78d-4124-b4bb-d19cff6eeb16",
+              "name": "doisToFetch",
+              "value": "=[\"10.1007/s10115-005-0156-0\", \"10.1109/ICDM.2003.1250949\"]",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        -800
+      ],
+      "id": "0b4f6afc-a371-4367-8905-4f78d823f9b5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const citations = $json.citations || [];\n\nconst jurisdictionRules = {\n  \"south_africa\": [\"Constitutional Court\", \"Labour Court\", \"ZA\", \"South Africa\"],\n  \"us_federal\": [\"SCOTUS\", \"USC\", \"Federal Register\", \"United States\"],\n  \"eu\": [\"GDPR\", \"European Court\", \"EU\", \"Brussels\"],\n  \"international\": [\"UN\", \"ICJ\", \"Geneva\", \"Treaty\"]\n};\n\nconst taggedCitations = citations.map(citation => {\n  let jurisdiction = \"unknown\";\n\n  const text = `${citation.title} ${citation.author}`.toLowerCase();\n\n  for (const [key, keywords] of Object.entries(jurisdictionRules)) {\n    if (keywords.some(k => text.includes(k.toLowerCase()))) {\n      jurisdiction = key;\n      break;\n    }\n  }\n\n  return {\n    ...citation,\n    jurisdiction\n  };\n});\n\nreturn [{ json: { citations: taggedCitations } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -1040
+      ],
+      "id": "f33e63ec-4c7c-4e5d-abf5-92e55c83017c",
+      "name": "Add Jurisdiction tags"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"preferredJurisdictions\": [\"south_africa\", \"us_federal\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -1040
+      ],
+      "id": "1ff84196-6c85-48ab-9d95-fbdd8d7d162e",
+      "name": "Set Jurisdiction Preferred"
+    },
+    {
+      "parameters": {
+        "jsCode": "const citations = $json.citations || [];\nconst summary = {};\n\nfor (const c of citations) {\n  const j = c.jurisdiction || \"unknown\";\n  summary[j] = (summary[j] || 0) + 1;\n}\n\nreturn [{ json: { jurisdictionSummary: summary } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -800
+      ],
+      "id": "85ef40f5-40a1-4127-8d0b-c1d3f1607cfe",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const preferred = $json.preferredJurisdictions || [];\nconst citations = $json.citations || [];\n\nconst matched = [];\nconst unmatched = [];\n\nfor (const c of citations) {\n  if (preferred.includes(c.jurisdiction)) {\n    matched.push(c);\n  } else {\n    unmatched.push(c);\n  }\n}\n\nreturn [\n  { json: { citations: matched } },       // For report generation\n  { json: { manualReview: unmatched } }   // For fallback/manual review\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -800
+      ],
+      "id": "00d6fd3b-6768-4cda-83c4-0ea9db111791",
+      "name": "Filter by Jurisdiction"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc26b064-69de-44bd-8895-db2a5c31f35f",
+              "name": "={\n  \"documentSource\": \"Google Drive\",         // Options: \"Google Drive\", \"Upload\", \"Dropbox\"\n  \"deliveryMode\": \"Google Docs\",            // Options: \"email\", \"Google Drive\", \"Google Docs\"\n  \"previewBeforeSending\": true              // Boolean toggle\n}",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -1040
+      ],
+      "id": "ed95f2e0-f63e-4893-8c6f-53123e0d8734",
+      "name": "Client Preferences"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "deliverySource",
+                    "rightValue": "\"Uploaded PDF\"",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "15075fb1-6dd7-4f17-962f-de71068c1428"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6e358f3d-85df-48c0-8ebb-890d85d08987",
+                    "leftValue": "deliverySource",
+                    "rightValue": "\"Dropbox\"",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a5d5babb-ef30-4759-bf2c-995b6fc341dc",
+                    "leftValue": "deliverySource",
+                    "rightValue": "\"Google Drive\"",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -336,
+        -1056
+      ],
+      "id": "66e6fb26-dbd6-4ff6-826d-9b2d87d95617",
+      "name": "whichSource"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "deliveryMode",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "15075fb1-6dd7-4f17-962f-de71068c1428"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6e358f3d-85df-48c0-8ebb-890d85d08987",
+                    "leftValue": "deliveryMode",
+                    "rightValue": "\"Google Docs\"",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a5d5babb-ef30-4759-bf2c-995b6fc341dc",
+                    "leftValue": "deliveryMode",
+                    "rightValue": "\"Google Drive\"",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        816,
+        -816
+      ],
+      "id": "97e87d6e-3da1-4de9-b7a3-51b97707eec9",
+      "name": "whichDelivery"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b81e885-abbc-47c3-9973-ea76473b33ff",
+              "name": "",
+              "value": "={\n  \"binary\": {\n    \"document\": {\n      \"data\": \"<base64-encoded PDF content>\",\n      \"mimeType\": \"application/pdf\",\n      \"fileName\": \"sampleCitation.pdf\"\n    }\n  }\n}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        -864
+      ],
+      "id": "fd0359a0-2919-481e-bc87-8c321171aec6",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "path": "bb2b4228-a78c-4baa-9e1f-0634bf29396e",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -800
+      ],
+      "id": "28b8566e-0481-4ad3-b620-b49f872968b5",
+      "name": "Webhook",
+      "webhookId": "bb2b4228-a78c-4baa-9e1f-0634bf29396e"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "https://keen-gentleness.up.railway.app/client-preferences",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        -1040
+      ],
+      "id": "d7850176-fd04-4da0-98a8-78994af0f082",
+      "name": "Webhook1",
+      "webhookId": "65dc3272-d57f-4cfd-a272-8b622035d2af"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pdfParse = require('pdf-parse');\nconst buffer = Buffer.from(items[0].binary[\"sampleCitation.pdf\"].data, 'base64');\n\nasync function run() {\n  const data = await pdfParse(buffer);\n  const text = data.text;\n\n  const statuteRegex = /\\b([A-Z][a-zA-Z\\s]+) Act (\\d{4})\\b/g;\n  const statuteCitations = [...text.matchAll(statuteRegex)].map(match => ({\n    type: 'statute',\n    citation: match[0],\n    statuteName: match[1],\n    year: match[2],\n    jurisdiction: 'South Africa'\n  }));\n\n  return statuteCitations.map(entry => ({ json: entry }));\n}\n\nreturn run();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -768
+      ],
+      "id": "3367c796-fb0d-4b6f-890a-3bd418060424",
+      "name": "Code in JavaScript1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -608
+      ],
+      "id": "8c454be7-5269-407d-913b-ac1f20b2dc28",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "24158fb8-058e-4e8b-b90a-45f4a8cdb117",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -864
+      ],
+      "id": "b0919878-42f8-4db5-8129-368d4661a149",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dummyBase64 = \"JVBERi0xLjQKJcfs\"; // Short dummy PDF string\n\nreturn [\n  {\n    binary: {\n      \"sampleCitation.pdf\": {\n        data: dummyBase64,\n        mimeType: \"application/pdf\",\n        fileName: \"sampleCitation.pdf\"\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        -832
+      ],
+      "id": "2db3bf77-9b01-4b4c-a756-8232416fa8e3",
+      "name": "Simulate PDF Payload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9293168e-4df0-4931-a40b-cdb81aa1205d",
+              "name": "debug",
+              "value": "={{ $binary.file.fileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        -624
+      ],
+      "id": "5138c657-275a-4dcc-94c6-29cee4d12a46",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "url": "https://store1.gofile.io/uploadFile",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $binary.file }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -640
+      ],
+      "id": "ed4b3f4d-31d4-4d7c-98f9-1d63e7e44590",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract structured data from a document": {
+      "main": [
+        [
+          {
+            "node": "Add Jurisdiction tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Generate Risk Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Jurisdiction tags": {
+      "main": [
+        [
+          {
+            "node": "Set Jurisdiction Preferred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Jurisdiction Preferred": {
+      "main": [
+        [
+          {
+            "node": "Filter by Jurisdiction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter by Jurisdiction": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Preferences": {
+      "main": [
+        [
+          {
+            "node": "whichSource",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Risk Report": {
+      "main": [
+        [
+          {
+            "node": "whichDelivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "whichSource": {
+      "main": [
+        [
+          {
+            "node": "Extract structured data from a document",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Add Jurisdiction tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Client Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulate PDF Payload": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "c244071b-f44e-469f-ba04-069f62ba3a91",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff61129751f8b7e00bab52d2bac1d5f2e222de65ed8fd6e49110a6c63d10ed35"
+  },
+  "id": "szKBYqXEucva1bUh",
+  "tags": []
+}
