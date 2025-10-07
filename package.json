@@ -1,4 +1,4 @@
-{
+ {
   "name": "n8n-legal-contract",
   "version": "1.0.0",
   "description": "Workflow deployment for legal contract parsing",
@@ -7,6 +7,6 @@
     "start": "n8n"
   },
   "dependencies": {
-    "n8n": "^1.114.3"
-  }
+  "pdfkit": "^0.13.0"
+}
 }
