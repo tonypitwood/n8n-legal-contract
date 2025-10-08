@@ -4,7 +4,7 @@
   "description": "Workflow deployment for legal contract parsing",
   "main": "index.js",
   "scripts": {
-    "start": "bash start.sh"
+    "start": "bash launch-tony.sh"
   },
   "dependencies": {
    "n8n": "^1.0.0",
