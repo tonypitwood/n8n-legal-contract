@@ -1,14 +1,6 @@
 services:
   - type: web
     name: n8n-legal-contract
-    env: node
+    env: docker
     plan: starter
-    buildCommand: npm install
-    startCommand: N8N_BASIC_AUTH_ACTIVE=true N8N_BASIC_AUTH_USER=tonyadmin N8N_BASIC_AUTH_PASSWORD=SecurePass123 n8n
-    envVars:
-      - key: N8N_BASIC_AUTH_ACTIVE
-        value: true
-      - key: N8N_BASIC_AUTH_USER
-        value: tonyAdmin
-      - key: N8N_BASIC_AUTH_PASSWORD
-        value: SecurePassword123
+    dockerfilePath: Dockerfile
