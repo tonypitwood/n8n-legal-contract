@@ -1,0 +1,18 @@
+[
+  {
+    "citation": {
+      "title": "Sample Citation Title",
+      "citation": "ZA 2023 12",
+      "jurisdiction": "ZA",
+      "sourceUrl": "https://www.justice.gov.za/sample-case"
+    }
+  },
+  {
+    "citation": {
+      "title": "US Federal Case",
+      "citation": "US 2022 45",
+      "jurisdiction": "US",
+      "sourceUrl": "https://www.supremecourt.gov/sample"
+    }
+  }
+]
