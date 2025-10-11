@@ -3,4 +3,22 @@ services:
     name: n8n-legal-contract
     env: docker
     plan: starter
+    region: frankfurt
     dockerfilePath: Dockerfile
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_DATABASE
+        value: neondb
+      - key: DB_POSTGRESDB_HOST
+        value: ep-dawn-resonance-agq8vbkj-pooler.c-2.eu-central-1.aws.neon.tech
+      - key: DB_POSTGRESDB_PORT
+        value: "5432"
+      - key: DB_POSTGRESDB_USER
+        value: neondb_owner
+      - key: DB_POSTGRESDB_PASSWORD
+        value: npg_eC3yluF0ULiM
+      - key: DB_POSTGRESDB_SSL
+        value: "true"
