@@ -1,4 +1,4 @@
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:1.37.1
 
 ENV N8N_PORT=5678
 ENV N8N_BASIC_AUTH_ACTIVE=true
@@ -6,4 +6,4 @@ ENV N8N_BASIC_AUTH_USER=tonyadmin
 ENV N8N_BASIC_AUTH_PASSWORD=SecurePass123
 ENV N8N_PATH=""
 
-CMD ["n8n"]
+CMD ["/bin/sh", "-c", "which n8n && n8n"]
