@@ -1,0 +1,79 @@
+{
+  "name": "Security first workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "568f455b-28e6-4c2f-bf29-403971c6467e",
+      "name": "When clicking \"Test workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      filename: `citation_payload_${new Date().toISOString()}.json`\n    }\n  }\n];"
+      },
+      "id": "021eebe7-0f74-4e01-b637-e7df07a03cf4",
+      "name": "Set Filename",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tonypitwood/n8n-legal-contract/main/legal-citation-sample.json",
+        "options": {}
+      },
+      "id": "d16cc0d7-141f-458d-8478-c2155feb4042",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        200
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking \"Test workflow\"": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Set Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e1d61cd0-8d22-434b-98d7-32fe58e37c00",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e2af40346f07fa471a88b40aa8febde9815d922b41014ab094d1598aa893478"
+  },
+  "id": "sS8bK4rchfh3nldx",
+  "tags": []
+}
