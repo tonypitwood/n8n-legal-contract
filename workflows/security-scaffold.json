@@ -1,1 +1,126 @@
-
+{
+  "name": "Security first workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "568f455b-28e6-4c2f-bf29-403971c6467e",
+      "name": "When clicking \"Test workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      filename: `citation_payload_${new Date().toISOString()}.json`\n    }\n  }\n];"
+      },
+      "id": "021eebe7-0f74-4e01-b637-e7df07a03cf4",
+      "name": "Set Filename",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/tonypitwood/n8n-legal-contract/main/legal-citation-sample.json",
+        "options": {}
+      },
+      "id": "d16cc0d7-141f-458d-8478-c2155feb4042",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const userComment = $json.comment || \"No comment provided\";\n\nreturn [{\n  json: {\n    version: \"v1.1\",\n    date: new Date().toISOString(),\n    author: \"Tony Pitwood\",\n    notes: [\n      \"Updated credential validator\",\n      \"Refactored filename logic\",\n      userComment\n    ]\n  }\n}];"
+      },
+      "id": "79a56b48-28c4-4159-b7b8-8e6b1f1f2160",
+      "name": "Changelog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f480c237-c29d-4653-b325-adff06135752",
+              "name": "=comment: \"Changed Comment and added Git commit reference\"",
+              "value": "comment: \"Refactored credential validator and added Git commit reference\"",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "636f6bf4-afd8-449a-bce5-2b8c1d0238a7",
+      "name": "Comment Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        440,
+        60
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking \"Test workflow\"": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Set Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comment Input": {
+      "main": [
+        [
+          {
+            "node": "Changelog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9a0c4bd0-7762-4792-ac3f-1b44add85c65",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e2af40346f07fa471a88b40aa8febde9815d922b41014ab094d1598aa893478"
+  },
+  "id": "sS8bK4rchfh3nldx",
+  "tags": []
+}
