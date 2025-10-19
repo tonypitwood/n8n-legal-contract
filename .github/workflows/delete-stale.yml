@@ -1,8 +1,9 @@
 name: 🔥 Delete Stale File
 
 on:
-  workflow_dispatch:  # Manual trigger via GitHub UI or API
-
+  repository_dispatch:
+    types: [sync-delete]
+    
 jobs:
   delete:
     runs-on: ubuntu-latest
