@@ -28,4 +28,3 @@ jobs:
             exit 1
           else
             echo "✅ File successfully deleted."
-          fi
