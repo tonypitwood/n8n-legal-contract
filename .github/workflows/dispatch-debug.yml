@@ -1,7 +1,7 @@
 name: 🔍 DispatchDebugger
 
 on:
-  repository_dispatch;
+  repository_dispatch: {}
 
 jobs:
   debug:
