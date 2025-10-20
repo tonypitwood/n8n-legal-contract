@@ -2,7 +2,7 @@ name: 🔥 Delete Stale File
 
 on:
   repository_dispatch:
-    types: [sync-delete]
+    types: [sync-delete-v2]
     
 jobs:
   delete:
