@@ -1,0 +1,30 @@
+name: 🔥 Delete Stale Far Two
+
+on:
+  repository_dispatch:
+
+jobs:
+  delete:
+    if: startsWith(github.event.event_type, 'sync-purge-')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate filename
+        run: echo "Purging file: ${{ github.event.client_payload.filename }}"
+
+      - name: Check file presence
+        run: |
+          if [ ! -f "${{ github.event.client_payload.filename }}" ]; then
+            echo "File not found: ${{ github.event.client_payload.filename }}"
+            exit 1
+          fi
+
+      - name: Delete file
+        run: rm "${{ github.event.client_payload.filename }}"
+
+      - name: Confirm deletion
+        run: |
+          if [ -f "${{ github.event.client_payload.filename }}" ]; then
+            echo "File still exists after deletion attempt."
+            exit 1
+          else
+            echo "✅ File successfully deleted."
